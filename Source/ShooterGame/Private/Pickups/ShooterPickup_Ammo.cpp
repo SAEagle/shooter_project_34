@@ -7,7 +7,7 @@
 
 AShooterPickup_Ammo::AShooterPickup_Ammo(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	AmmoClips = 2;
+    AmmoClips = 2;
 }
 
 bool AShooterPickup_Ammo::IsForWeapon(UClass* WeaponClass)
