@@ -116,7 +116,7 @@ void AShooterPickup_Weapon::PickUp(class AShooterCharacter* Pawn)
 void AShooterPickup_Weapon::RemovePickUpFromScene()
 {
     UE_LOG(LogTemp, Display, TEXT("Wanted to Destroy"));
-    // Destroy();
+    SetLifeSpan(2.0f);
 }
 
 void AShooterPickup_Weapon::RespawnPickup()

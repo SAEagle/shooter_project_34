@@ -225,6 +225,7 @@ void AShooterWeapon::DropItem()
     {
         Weapon->SetAmmoToDrop(CurrentAmmoInClip);
         Weapon->FinishSpawning(SpawnLocation);
+        UE_LOG(LogTemp, Display, TEXT("DropItem "));
     }
 }
 

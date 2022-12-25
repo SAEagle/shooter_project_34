@@ -54,6 +54,7 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
     RunningSpeedModifier = 1.5f;
     bWantsToRun = false;
     bWantsToFire = false;
+    bFrozen = false;
     LowHealthPercentage = 0.5f;
 
     BaseTurnRate = 45.f;
@@ -426,6 +427,18 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
                 FForceFeedbackParameters FFParams;
                 FFParams.Tag = "Damage";
                 PC->ClientPlayForceFeedback(DamageType->HitForceFeedback, FFParams);
+            }
+        }
+        if (PC && DamageEvent.DamageTypeClass)
+        {
+            AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
+            AShooterHUD* MyHUD = MyPC ? Cast<AShooterHUD>(MyPC->GetHUD()) : NULL;
+            UShooterDamageType* DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+            if (DamageType && DamageType->bFreeze == 1)
+            {
+                const auto GetFreezeTime = DamageType->FreezeTime;
+                SetToStartFrozen(GetFreezeTime);
+                UE_LOG(LogTemp, Display, TEXT("Apply Freeze"));
             }
         }
     }
@@ -1279,6 +1292,34 @@ bool AShooterCharacter::IsAlive() const
 {
     return Health > 0;
 }
+
+// Freeze logic
+bool AShooterCharacter::IsFrozen() const
+{
+    return bFrozen;
+}
+
+void AShooterCharacter::SetToStartFrozen(float Timer)
+{
+    GetWorldTimerManager().SetTimer(TimerHandle_FreezeHandle, this, &AShooterCharacter::ResetFrozenTimer, Timer, false);
+    MakeFrozen();
+}
+
+void AShooterCharacter::MakeFrozen()
+{
+    bFrozen = true;
+    GetCharacterMovement()->DisableMovement();
+    UE_LOG(LogTemp, Display, TEXT("Start Timer Freeze"));
+}
+
+void AShooterCharacter::ResetFrozenTimer()
+{
+    GetWorldTimerManager().ClearTimer(TimerHandle_FreezeHandle);
+    bFrozen = false;
+    GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    UE_LOG(LogTemp, Display, TEXT("No Freeze"));
+}
+//
 
 float AShooterCharacter::GetLowHealthPercentage() const
 {
