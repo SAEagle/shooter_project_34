@@ -499,6 +499,14 @@ protected:
     /** Builds list of points to check for pausing replication for a connection*/
     void BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints);
 
+    /** Wall Jump */
+   // UFUNCTION(NetMulticast, reliable)
+    void WallJump();
+
+    /** Server logic implementation*/
+    UFUNCTION(server, reliable, WithValidation)
+    void Server_OnWallJump(FVector Location);
+
 protected:
     /** Returns Mesh1P subobject **/
     FORCEINLINE USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }

@@ -8,6 +8,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "AudioThread.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
@@ -1058,6 +1059,49 @@ void AShooterCharacter::OnStopRunning()
     SetRunning(false, false);
 }
 
+void AShooterCharacter::WallJump()
+{
+    if (!GetCharacterMovement())
+        return;
+
+    if (GetCharacterMovement()->IsFalling())
+    {
+        TArray<FHitResult> HitActors;
+        const auto EndLocation = GetActorForwardVector() * 50 + GetActorLocation();
+        TArray<AActor*> ActorsToIgnore;
+        ActorsToIgnore.Add(this);
+        TArray<TEnumAsByte<enum EObjectTypeQuery>> ObjectTypes;
+        ObjectTypes.Add(EObjectTypeQuery::ObjectTypeQuery1);
+
+        if (UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), GetActorLocation(), EndLocation, 40.0f, ObjectTypes, false, ActorsToIgnore,
+                EDrawDebugTrace::ForDuration, HitActors, true, FLinearColor::Red, FLinearColor::Green, 2.0f))
+        {
+            const auto LaunchVector = GetActorForwardVector() * -300.0f + FVector::ZAxisVector * 500;
+            if (GetLocalRole() < ROLE_Authority)
+            {
+                // Client call to server
+                Server_OnWallJump(LaunchVector);
+            }
+            else
+            {
+                // Server run on server
+                LaunchCharacter(LaunchVector, false, false);
+                UE_LOG(LogTemp, Warning, TEXT("Only Server Launch From Server!"));
+            }
+        }
+    }
+}
+
+bool AShooterCharacter::Server_OnWallJump_Validate(FVector Location)
+{
+    return true;
+}
+void AShooterCharacter::Server_OnWallJump_Implementation(FVector Location)
+{
+    UE_LOG(LogTemp, Warning, TEXT("Server_OnTest_Implementation CALLED"));
+    LaunchCharacter(Location, false, false);
+}
+
 bool AShooterCharacter::IsRunning() const
 {
     if (!GetCharacterMovement())
@@ -1154,6 +1198,7 @@ void AShooterCharacter::OnStartJump()
     if (MyPC && MyPC->IsGameInputAllowed())
     {
         bPressedJump = true;
+        WallJump();
     }
 }
 
