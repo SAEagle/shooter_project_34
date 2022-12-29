@@ -266,6 +266,64 @@ class AShooterCharacter : public ACharacter
     /** Handle for efficient management of Freeze timer */
     FTimerHandle TimerHandle_FreezeHandle;
 
+    // Jetpack logic
+    /** modifier for fuel amount */
+    UPROPERTY(BlueprintReadOnly, Category = Pawn)
+    float FuelAmount;
+
+    /** modifier for fuel cons amount */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float FuelConsumptionAmount;
+
+    /** modifier for fuel cons speed */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float FuelConsumptionSpeed;
+
+    /** delay of fuel recharge delay */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float FuelRechargeDelay;
+
+    /** delay of fuel recharge delay */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float FuelRechargeAmount;
+
+    /** delay of fuel recharge speed */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float FuelRechargeSpeed;
+
+    /** Handle for JetpackRecharging timer */
+    FTimerHandle TimerHandle_JetpackRechargeTimer;
+
+    /** Handle for Fuel timer */
+    FTimerHandle TimerHandle_JetpackFuelTimer;
+
+    //** Setter for fuel */
+    void SetFuelAmount(float Amount);
+
+    //** Jetpack Activation */
+    UFUNCTION(BlueprintCallable, Category = Pawn)
+    void ActivateJetpack();
+
+    //** Jetpack Deactivation */
+    UFUNCTION(BlueprintCallable, Category = Pawn)
+    void DeactivateJetpack();
+
+    //** Jetpack activation control */
+    void SetJetpackActivation(bool Value);
+
+    //** Get Jetpack activation */
+    bool IsJetpackActive() const;
+
+    //** Jetpack fuel consumption logic control */
+    void FuelConsumption();
+
+    //** Jetpack fuel recharge logic control */
+    void FuelRecharge();
+
+    //** Jetpack force logic control */
+    void ApplyJetpackForce();
+
+    ////
     /** SetFrozen timer state */
     void SetToStartFrozen(float Timer);
 
@@ -341,6 +399,10 @@ protected:
 
     /** current frozen state */
     uint8 bFrozen : 1;
+
+    /** current Jetpack state */ 
+    UPROPERTY(BlueprintReadOnly, Category = Pawn)
+    uint8 bJetPackActive : 1;
 
     /** when low health effects should start */
     float LowHealthPercentage;
@@ -500,12 +562,15 @@ protected:
     void BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints);
 
     /** Wall Jump */
-   // UFUNCTION(NetMulticast, reliable)
+    // UFUNCTION(NetMulticast, reliable)
     void WallJump();
 
     /** Server logic implementation*/
     UFUNCTION(server, reliable, WithValidation)
     void Server_OnWallJump(FVector Location);
+
+    UFUNCTION(server, reliable, WithValidation)
+    void Server_OnApplyJetpackForce(bool ActivationValue, FVector ApplyVector);
 
 protected:
     /** Returns Mesh1P subobject **/
