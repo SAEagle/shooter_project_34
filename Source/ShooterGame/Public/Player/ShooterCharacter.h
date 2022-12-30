@@ -291,6 +291,10 @@ class AShooterCharacter : public ACharacter
     UPROPERTY(EditDefaultsOnly, Category = Pawn)
     float FuelRechargeSpeed;
 
+    /** Activation thashhold  */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float JetpackActivationLimit;
+
     /** Handle for JetpackRecharging timer */
     FTimerHandle TimerHandle_JetpackRechargeTimer;
 
@@ -400,8 +404,8 @@ protected:
     /** current frozen state */
     uint8 bFrozen : 1;
 
-    /** current Jetpack state */ 
-    UPROPERTY(BlueprintReadOnly, Category = Pawn)
+    /** current Jetpack state */
+    UPROPERTY(BlueprintReadOnly, Category = Pawn, Replicated)
     uint8 bJetPackActive : 1;
 
     /** when low health effects should start */
@@ -570,7 +574,10 @@ protected:
     void Server_OnWallJump(FVector Location);
 
     UFUNCTION(server, reliable, WithValidation)
-    void Server_OnApplyJetpackForce(bool ActivationValue, FVector ApplyVector);
+    void Server_OnActivateJetpack(bool Value);
+
+    UFUNCTION(server, reliable, WithValidation)
+    void Server_OnDeactivateJetpack(bool Value);
 
 protected:
     /** Returns Mesh1P subobject **/

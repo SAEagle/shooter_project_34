@@ -57,14 +57,14 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
     bWantsToFire = false;
 
     FuelAmount = 100.0f;
-    FuelConsumptionAmount = 2.0f;
+    FuelConsumptionAmount = 1.0f;
     FuelConsumptionSpeed = 0.03f;
     FuelRechargeDelay = 2.0f;
     FuelRechargeAmount = 1.0f;
     FuelRechargeSpeed = 0.1f;
+    JetpackActivationLimit = 15.0f;
     bFrozen = false;
     bJetPackActive = false;
-
     LowHealthPercentage = 0.5f;
 
     BaseTurnRate = 45.f;
@@ -1111,20 +1111,6 @@ void AShooterCharacter::Server_OnWallJump_Implementation(FVector Location)
     LaunchCharacter(Location, false, false);
 }
 
-bool AShooterCharacter::Server_OnApplyJetpackForce_Validate(bool ActivationValue, FVector ApplyVector)
-{
-    return true;
-}
-
-void AShooterCharacter::Server_OnApplyJetpackForce_Implementation(bool ActivationValue, FVector ApplyVector)
-{
-    if (ActivationValue)
-    {
-        AddMovementInput(ApplyVector, 1.0f, false);
-        UE_LOG(LogTemp, Warning, TEXT("Server_OnTest_Implementation CALLED"));
-    }
-}
-
 bool AShooterCharacter::IsRunning() const
 {
     if (!GetCharacterMovement())
@@ -1139,7 +1125,6 @@ void AShooterCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    ApplyJetpackForce();
     if (bWantsToRunToggled && !IsRunning())
     {
         SetRunning(false, false);
@@ -1253,6 +1238,7 @@ void AShooterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
     // everyone except local owner: flag change is locally instigated
     DOREPLIFETIME_CONDITION(AShooterCharacter, bIsTargeting, COND_SkipOwner);
     DOREPLIFETIME_CONDITION(AShooterCharacter, bWantsToRun, COND_SkipOwner);
+    DOREPLIFETIME_CONDITION(AShooterCharacter, bJetPackActive, COND_SkipOwner);
 
     DOREPLIFETIME_CONDITION(AShooterCharacter, LastTakeHitInfo, COND_Custom);
 
@@ -1376,11 +1362,20 @@ void AShooterCharacter::SetFuelAmount(float Amount)
 // Jetpack Logic
 void AShooterCharacter::ActivateJetpack()
 {
-    if (FuelAmount > 0.0f)
+    if (FuelAmount > JetpackActivationLimit && !bJetPackActive)
     {
-        SetJetpackActivation(true);
-        GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-        GetCharacterMovement()->AirControl = 1;
+        if (GetLocalRole() < ROLE_Authority)
+        {
+            // Client call to server
+            Server_OnActivateJetpack(true);
+        }
+        else
+        {
+            // Server run on server
+            bJetPackActive = true;
+            GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+            GetCharacterMovement()->AirControl = 1;
+        }
         GetWorldTimerManager().ClearTimer(TimerHandle_JetpackRechargeTimer);
         GetWorldTimerManager().SetTimer(TimerHandle_JetpackFuelTimer, this, &AShooterCharacter::FuelConsumption, FuelConsumptionSpeed, true);
         FuelConsumption();
@@ -1389,9 +1384,21 @@ void AShooterCharacter::ActivateJetpack()
 
 void AShooterCharacter::DeactivateJetpack()
 {
-    SetJetpackActivation(false);
-    GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-    GetCharacterMovement()->AirControl = 0.2f;
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking)
+        return;
+
+    if (GetLocalRole() < ROLE_Authority)
+    {
+        // Client call to server
+        Server_OnDeactivateJetpack(false);
+    }
+    else
+    {
+        // Server run on server
+        bJetPackActive = false;
+        GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+        GetCharacterMovement()->AirControl = 0.2f;
+    }
     GetWorldTimerManager().ClearTimer(TimerHandle_JetpackFuelTimer);
     GetWorldTimerManager().SetTimer(TimerHandle_JetpackRechargeTimer, this, &AShooterCharacter::FuelRecharge, FuelRechargeSpeed, true, FuelRechargeDelay);
     FuelRecharge();
@@ -1428,24 +1435,30 @@ void AShooterCharacter::FuelRecharge()
     SetFuelAmount(FuelValue);
 }
 
-void AShooterCharacter::ApplyJetpackForce()
+bool AShooterCharacter::Server_OnActivateJetpack_Validate(bool Value)
 {
-    const auto VectorToApply = GetActorUpVector();
+    return true;
+}
 
-    if (GetLocalRole() < ROLE_Authority)
-    {
-        // Client call to server
-        Server_OnApplyJetpackForce(IsJetpackActive(), VectorToApply);
-    }
-    else
-    {
-        if (IsJetpackActive())
-        {
-            // Server run on server
-            AddMovementInput(VectorToApply, 1.0f, false);
-            UE_LOG(LogTemp, Warning, TEXT("Only Server Launch From Server!"));
-        }
-    }
+bool AShooterCharacter::Server_OnDeactivateJetpack_Validate(bool Value)
+{
+    return true;
+}
+
+void AShooterCharacter::Server_OnActivateJetpack_Implementation(bool Value)
+{
+    bJetPackActive = Value;
+    UE_LOG(LogTemp, Warning, TEXT("Activate Jetpack! Only Server Launch From Server!"));
+    GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+    GetCharacterMovement()->AirControl = 1;
+}
+
+void AShooterCharacter::Server_OnDeactivateJetpack_Implementation(bool Value)
+{
+    bJetPackActive = Value;
+    UE_LOG(LogTemp, Warning, TEXT("Deactivate Jetpack! Only Server Launch From Server!"));
+    GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+    GetCharacterMovement()->AirControl = 0.2f;
 }
 
 void AShooterCharacter::SetToStartFrozen(float Timer)
