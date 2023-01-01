@@ -73,6 +73,9 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
     HealthBar = UCanvas::MakeIcon(HUDAssets02Texture, 67, 212, 372, 50);
     HealthBarBg = UCanvas::MakeIcon(HUDAssets02Texture, 67, 162, 372, 50);
 
+    JetpackIcon = UCanvas::MakeIcon(HUDAssets02Texture, 122, 262, 32, 30);
+    FrozenIcon = UCanvas::MakeIcon(HUDAssets02Texture, 165, 258, 38, 30);
+
     HealthIcon = UCanvas::MakeIcon(HUDAssets02Texture, 78, 262, 28, 28);
     KillsIcon = UCanvas::MakeIcon(HUDMainTexture, 318, 93, 24, 24);
     TimerIcon = UCanvas::MakeIcon(HUDMainTexture, 381, 93, 24, 24);
@@ -344,6 +347,24 @@ void AShooterHUD::DrawHealth()
     Canvas->DrawItem(TileItem);
 
     Canvas->DrawIcon(HealthIcon, HealthPosX + Offset * ScaleUI, HealthPosY + (HealthBar.VL - HealthIcon.VL) / 2.0f * ScaleUI, ScaleUI);
+}
+
+void AShooterHUD::DrawJetpack()
+{
+    AShooterCharacter* MyPawn = Cast<AShooterCharacter>(GetOwningPawn());
+    Canvas->SetDrawColor(FColor::Orange);
+    const float HealthPosX = (Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2;
+    const float HealthPosY = Canvas->ClipY - (Offset + HealthBarBg.VL) * ScaleUI * 1.5;
+    Canvas->DrawIcon(HealthBarBg, HealthPosX, HealthPosY, ScaleUI/1.5);
+    const float HealthAmount = FMath::Min(1.0f, MyPawn->FuelAmount / 100.0f);
+
+    FCanvasTileItem TileItem(FVector2D(HealthPosX, HealthPosY), HealthBar.Texture->Resource,
+        FVector2D(HealthBar.UL * HealthAmount * ScaleUI/1.5, HealthBar.VL * ScaleUI /1.5), FLinearColor::Yellow);
+    MakeUV(HealthBar, TileItem.UV0, TileItem.UV1, HealthBar.U, HealthBar.V, HealthBar.UL * HealthAmount, HealthBar.VL);
+    TileItem.BlendMode = SE_BLEND_Translucent;
+    Canvas->DrawItem(TileItem);
+
+    Canvas->DrawIcon(JetpackIcon, HealthPosX + Offset * ScaleUI, HealthPosY + (HealthBar.VL - JetpackIcon.VL) / 8.0f * ScaleUI, ScaleUI);
 }
 
 void AShooterHUD::DrawNVIDIAReflexTimers()
@@ -668,6 +689,7 @@ void AShooterHUD::DrawHUD()
         {
             DrawHealth();
             DrawWeaponHUD();
+            DrawJetpack();
         }
         else
         {

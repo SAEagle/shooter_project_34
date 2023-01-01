@@ -230,6 +230,14 @@ protected:
     UPROPERTY()
     FCanvasIcon PlaceIcon;
 
+    /** Jetpack icon. */
+    UPROPERTY()
+    FCanvasIcon JetpackIcon;
+
+    /** Frozen icon. */
+    UPROPERTY()
+    FCanvasIcon FrozenIcon;
+
     /** UI scaling factor for other resolutions than Full HD. */
     float ScaleUI;
 
@@ -327,6 +335,9 @@ protected:
 
     /** Draw player's health bar. */
     void DrawHealth();
+
+    /** Draw player's jetpack bar. */
+    void DrawJetpack();
 
     /** Draws match timer and player position. */
     void DrawMatchTimerAndPosition();
