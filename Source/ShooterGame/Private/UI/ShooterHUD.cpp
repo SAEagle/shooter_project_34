@@ -355,16 +355,35 @@ void AShooterHUD::DrawJetpack()
     Canvas->SetDrawColor(FColor::Orange);
     const float HealthPosX = (Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2;
     const float HealthPosY = Canvas->ClipY - (Offset + HealthBarBg.VL) * ScaleUI * 1.5;
-    Canvas->DrawIcon(HealthBarBg, HealthPosX, HealthPosY, ScaleUI/1.5);
+    Canvas->DrawIcon(HealthBarBg, HealthPosX, HealthPosY, ScaleUI / 1.5);
     const float HealthAmount = FMath::Min(1.0f, MyPawn->FuelAmount / 100.0f);
 
     FCanvasTileItem TileItem(FVector2D(HealthPosX, HealthPosY), HealthBar.Texture->Resource,
-        FVector2D(HealthBar.UL * HealthAmount * ScaleUI/1.5, HealthBar.VL * ScaleUI /1.5), FLinearColor::Yellow);
+        FVector2D(HealthBar.UL * HealthAmount * ScaleUI / 1.5, HealthBar.VL * ScaleUI / 1.5), FLinearColor::Yellow);
     MakeUV(HealthBar, TileItem.UV0, TileItem.UV1, HealthBar.U, HealthBar.V, HealthBar.UL * HealthAmount, HealthBar.VL);
     TileItem.BlendMode = SE_BLEND_Translucent;
     Canvas->DrawItem(TileItem);
 
     Canvas->DrawIcon(JetpackIcon, HealthPosX + Offset * ScaleUI, HealthPosY + (HealthBar.VL - JetpackIcon.VL) / 8.0f * ScaleUI, ScaleUI);
+}
+
+void AShooterHUD::DrawFrozen()
+{
+        UE_LOG(LogTemp, Warning, TEXT("Draw on client only"));
+
+        const float AnimSpeedModifier2 = 0.75f;
+        int32 EffectValue2 = 30;
+        PulseValue += GetWorld()->GetDeltaSeconds() * AnimSpeedModifier2;
+        float EffectAlpha = FMath::Abs(FMath::Sin(PulseValue));
+
+        float AlphaValue = 0.05f * (EffectAlpha * EffectValue2);
+
+        Canvas->PopSafeZoneTransform();
+        FCanvasTileItem TileItem(
+            FVector2D(0, 0), FrozenOverlayTexture->Resource, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.07f, 0.5f, 0.9f, AlphaValue));
+        TileItem.BlendMode = SE_BLEND_Translucent;
+        Canvas->DrawItem(TileItem);
+        Canvas->ApplySafeZoneTransform();
 }
 
 void AShooterHUD::DrawNVIDIAReflexTimers()
@@ -634,19 +653,7 @@ void AShooterHUD::DrawHUD()
     // Frozen Overlay Apply
     if (MyPawn && MyPawn->IsAlive() && MyPawn->IsFrozen())
     {
-        const float AnimSpeedModifier = 0.75f;
-        int32 EffectValue = 30;
-        PulseValue += GetWorld()->GetDeltaSeconds() * AnimSpeedModifier;
-        float EffectAlpha = FMath::Abs(FMath::Sin(PulseValue));
-
-        float AlphaValue = 0.05f * (EffectAlpha * EffectValue);
-
-        Canvas->PopSafeZoneTransform();
-        FCanvasTileItem TileItem(
-            FVector2D(0, 0), FrozenOverlayTexture->Resource, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.07f, 0.5f, 0.9f, AlphaValue));
-        TileItem.BlendMode = SE_BLEND_Translucent;
-        Canvas->DrawItem(TileItem);
-        Canvas->ApplySafeZoneTransform();
+         DrawFrozen();
     }
 
     // net mode

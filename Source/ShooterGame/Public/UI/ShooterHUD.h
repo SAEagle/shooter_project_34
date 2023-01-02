@@ -339,6 +339,10 @@ protected:
     /** Draw player's jetpack bar. */
     void DrawJetpack();
 
+    
+    /** Draw frozen overlay. */
+    void DrawFrozen();
+
     /** Draws match timer and player position. */
     void DrawMatchTimerAndPosition();
 

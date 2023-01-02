@@ -405,7 +405,7 @@ protected:
     uint8 bFrozen : 1;
 
     /** current Jetpack state */
-    UPROPERTY(BlueprintReadOnly, Category = Pawn, Replicated)
+    UPROPERTY(BlueprintReadOnly, Category = Pawn)
     uint8 bJetPackActive : 1;
 
     /** when low health effects should start */

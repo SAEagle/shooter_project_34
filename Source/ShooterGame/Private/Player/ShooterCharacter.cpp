@@ -439,17 +439,16 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
                 PC->ClientPlayForceFeedback(DamageType->HitForceFeedback, FFParams);
             }
         }
-        if (PC && DamageEvent.DamageTypeClass)
+    }
+
+    if (DamageEvent.DamageTypeClass)
+    {
+        UShooterDamageType* DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+        if (DamageType && DamageType->bFreeze == 1)
         {
-            AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
-            AShooterHUD* MyHUD = MyPC ? Cast<AShooterHUD>(MyPC->GetHUD()) : NULL;
-            UShooterDamageType* DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
-            if (DamageType && DamageType->bFreeze == 1)
-            {
-                const auto GetFreezeTime = DamageType->FreezeTime;
-                SetToStartFrozen(GetFreezeTime);
-                UE_LOG(LogTemp, Display, TEXT("Apply Freeze"));
-            }
+            const auto GetFreezeTime = DamageType->FreezeTime;
+            SetToStartFrozen(GetFreezeTime);
+            UE_LOG(LogTemp, Display, TEXT("Apply Freeze"));
         }
     }
 
@@ -1238,8 +1237,6 @@ void AShooterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
     // everyone except local owner: flag change is locally instigated
     DOREPLIFETIME_CONDITION(AShooterCharacter, bIsTargeting, COND_SkipOwner);
     DOREPLIFETIME_CONDITION(AShooterCharacter, bWantsToRun, COND_SkipOwner);
-    DOREPLIFETIME_CONDITION(AShooterCharacter, bJetPackActive, COND_SkipOwner);
-
     DOREPLIFETIME_CONDITION(AShooterCharacter, LastTakeHitInfo, COND_Custom);
 
     // everyone
