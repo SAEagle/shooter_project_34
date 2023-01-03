@@ -369,8 +369,6 @@ void AShooterHUD::DrawJetpack()
 
 void AShooterHUD::DrawFrozen()
 {
-        UE_LOG(LogTemp, Warning, TEXT("Draw on client only"));
-
         const float AnimSpeedModifier2 = 0.75f;
         int32 EffectValue2 = 30;
         PulseValue += GetWorld()->GetDeltaSeconds() * AnimSpeedModifier2;

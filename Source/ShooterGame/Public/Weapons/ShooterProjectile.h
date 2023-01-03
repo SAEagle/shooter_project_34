@@ -36,7 +36,7 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category=Projectile)
 	UParticleSystemComponent* ParticleComp;
-protected:
+  protected:
 
 	/** effects for explosion */
 	UPROPERTY(EditDefaultsOnly, Category=Effects)

@@ -5,6 +5,8 @@
 #include "ShooterTypes.h"
 #include "ShooterCharacter.generated.h"
 
+class UNiagaraSystem;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShooterCharacterEquipWeapon, AShooterCharacter*, AShooterWeapon* /* new */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShooterCharacterUnEquipWeapon, AShooterCharacter*, AShooterWeapon* /* old */);
 
@@ -260,15 +262,17 @@ class AShooterCharacter : public ACharacter
     /** check if pawn is still alive */
     bool IsAlive() const;
 
-    /** check if pawn is still frozen */
-    bool IsFrozen() const;
+    /** Walljump opposite force modifier */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float WallJumpOppositeForce;
 
-    /** Handle for efficient management of Freeze timer */
-    FTimerHandle TimerHandle_FreezeHandle;
+    /** Walljump Upper force modifier */
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
+    float WallJumpUppperForce;
 
     // Jetpack logic
     /** modifier for fuel amount */
-    UPROPERTY(BlueprintReadOnly, Category = Pawn)
+    UPROPERTY(EditDefaultsOnly, Category = Pawn)
     float FuelAmount;
 
     /** modifier for fuel cons amount */
@@ -324,10 +328,10 @@ class AShooterCharacter : public ACharacter
     //** Jetpack fuel recharge logic control */
     void FuelRecharge();
 
-    //** Jetpack force logic control */
-    void ApplyJetpackForce();
+    // Freeze state
+    /** check if pawn is still frozen */
+    bool IsFrozen() const;
 
-    ////
     /** SetFrozen timer state */
     void SetToStartFrozen(float Timer);
 
@@ -336,6 +340,15 @@ class AShooterCharacter : public ACharacter
 
     /** Reset Frozen timer */
     void ResetFrozenTimer();
+
+    /** Spawn Frozen Effect timer */
+    void SpawnFrozenEffect();
+
+    /** InputControl for Frozen State */
+    void DisableInputControl(bool Enabled);
+
+    /** Handle for efficient management of Freeze timer */
+    FTimerHandle TimerHandle_FreezeHandle;
 
     /** returns percentage of health when low health effects should start */
     float GetLowHealthPercentage() const;
@@ -404,8 +417,11 @@ protected:
     /** current frozen state */
     uint8 bFrozen : 1;
 
+    /** Frozen Effect state */
+    UPROPERTY(EditDefaultsOnly, Category = Effect)
+    UNiagaraSystem* FrozenEffectState;
+
     /** current Jetpack state */
-    UPROPERTY(BlueprintReadOnly, Category = Pawn)
     uint8 bJetPackActive : 1;
 
     /** when low health effects should start */
@@ -566,16 +582,17 @@ protected:
     void BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints);
 
     /** Wall Jump */
-    // UFUNCTION(NetMulticast, reliable)
     void WallJump();
 
-    /** Server logic implementation*/
+    /** Server logic walljump implementation*/
     UFUNCTION(server, reliable, WithValidation)
     void Server_OnWallJump(FVector Location);
 
+    /** Server logic jetpack activation implementation*/
     UFUNCTION(server, reliable, WithValidation)
     void Server_OnActivateJetpack(bool Value);
 
+    /** Server logic jetpack deactivation implementation*/
     UFUNCTION(server, reliable, WithValidation)
     void Server_OnDeactivateJetpack(bool Value);
 

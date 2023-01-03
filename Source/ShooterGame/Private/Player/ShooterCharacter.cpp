@@ -9,6 +9,8 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "AudioThread.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
@@ -55,6 +57,9 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
     RunningSpeedModifier = 1.5f;
     bWantsToRun = false;
     bWantsToFire = false;
+
+    WallJumpOppositeForce = 300.0f;
+    WallJumpUppperForce = 900.0f;
 
     FuelAmount = 100.0f;
     FuelConsumptionAmount = 1.0f;
@@ -892,6 +897,9 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
     PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AShooterCharacter::OnStartJump);
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &AShooterCharacter::OnStopJump);
 
+    PlayerInputComponent->BindAction("Jetpack", IE_Pressed, this, &AShooterCharacter::ActivateJetpack);
+    PlayerInputComponent->BindAction("Jetpack", IE_Released, this, &AShooterCharacter::DeactivateJetpack);
+
     PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AShooterCharacter::OnStartRunning);
     PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
     PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
@@ -1082,9 +1090,9 @@ void AShooterCharacter::WallJump()
         ObjectTypes.Add(EObjectTypeQuery::ObjectTypeQuery1);
 
         if (UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), GetActorLocation(), EndLocation, 40.0f, ObjectTypes, false, ActorsToIgnore,
-                EDrawDebugTrace::ForDuration, HitActors, true, FLinearColor::Red, FLinearColor::Green, 2.0f))
+                EDrawDebugTrace::None, HitActors, true, FLinearColor::Red, FLinearColor::Green, 2.0f))
         {
-            const auto LaunchVector = GetActorForwardVector() * -300.0f + FVector::ZAxisVector * 500;
+            const auto LaunchVector = GetActorForwardVector() * -WallJumpOppositeForce + FVector::ZAxisVector * WallJumpUppperForce;
             if (GetLocalRole() < ROLE_Authority)
             {
                 // Client call to server
@@ -1094,7 +1102,6 @@ void AShooterCharacter::WallJump()
             {
                 // Server run on server
                 LaunchCharacter(LaunchVector, false, false);
-                UE_LOG(LogTemp, Warning, TEXT("Only Server Launch From Server!"));
             }
         }
     }
@@ -1345,21 +1352,18 @@ bool AShooterCharacter::IsAlive() const
     return Health > 0;
 }
 
-// Freeze logic
-bool AShooterCharacter::IsFrozen() const
-{
-    return bFrozen;
-}
+//////////////////////////////////////////////////////////////////////////
+// Jetpack Logic
 
 void AShooterCharacter::SetFuelAmount(float Amount)
 {
     FuelAmount = Amount;
 }
 
-// Jetpack Logic
 void AShooterCharacter::ActivateJetpack()
 {
-    if (FuelAmount > JetpackActivationLimit && !bJetPackActive)
+    // checks prior jetpack activation
+    if (FuelAmount > JetpackActivationLimit && !bJetPackActive && !IsFrozen())
     {
         if (GetLocalRole() < ROLE_Authority)
         {
@@ -1381,7 +1385,7 @@ void AShooterCharacter::ActivateJetpack()
 
 void AShooterCharacter::DeactivateJetpack()
 {
-    if (GetCharacterMovement()->MovementMode == MOVE_Walking)
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking && IsFrozen())
         return;
 
     if (GetLocalRole() < ROLE_Authority)
@@ -1445,7 +1449,6 @@ bool AShooterCharacter::Server_OnDeactivateJetpack_Validate(bool Value)
 void AShooterCharacter::Server_OnActivateJetpack_Implementation(bool Value)
 {
     bJetPackActive = Value;
-    UE_LOG(LogTemp, Warning, TEXT("Activate Jetpack! Only Server Launch From Server!"));
     GetCharacterMovement()->SetMovementMode(MOVE_Flying);
     GetCharacterMovement()->AirControl = 1;
 }
@@ -1453,9 +1456,16 @@ void AShooterCharacter::Server_OnActivateJetpack_Implementation(bool Value)
 void AShooterCharacter::Server_OnDeactivateJetpack_Implementation(bool Value)
 {
     bJetPackActive = Value;
-    UE_LOG(LogTemp, Warning, TEXT("Deactivate Jetpack! Only Server Launch From Server!"));
     GetCharacterMovement()->SetMovementMode(MOVE_Falling);
     GetCharacterMovement()->AirControl = 0.2f;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Freeze logic
+
+bool AShooterCharacter::IsFrozen() const
+{
+    return bFrozen;
 }
 
 void AShooterCharacter::SetToStartFrozen(float Timer)
@@ -1467,16 +1477,41 @@ void AShooterCharacter::SetToStartFrozen(float Timer)
 void AShooterCharacter::MakeFrozen()
 {
     bFrozen = true;
-    GetCharacterMovement()->DisableMovement();
-    UE_LOG(LogTemp, Display, TEXT("Start Timer Freeze"));
+    DisableInputControl(true);
+    SpawnFrozenEffect();
 }
 
 void AShooterCharacter::ResetFrozenTimer()
 {
     GetWorldTimerManager().ClearTimer(TimerHandle_FreezeHandle);
     bFrozen = false;
+    DisableInputControl(false);
     GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-    UE_LOG(LogTemp, Display, TEXT("No Freeze"));
+}
+
+void AShooterCharacter::SpawnFrozenEffect()
+{
+    if (FrozenEffectState)
+    {
+        UNiagaraComponent* effect = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FrozenEffectState,
+            FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z - 90.0f), FRotator(1), FVector(1), true, true, ENCPoolMethod::AutoRelease,
+            true);
+    }
+}
+
+void AShooterCharacter::DisableInputControl(bool Enabled)
+{
+    GetCharacterMovement()->DisableMovement();
+    CurrentWeapon->StopFire();
+    APlayerController* MyPC = Cast<APlayerController>(Controller);
+    if (Enabled)
+    {
+        DisableInput(MyPC);
+    }
+    else
+    {
+        EnableInput(MyPC);
+    }
 }
 //
 
