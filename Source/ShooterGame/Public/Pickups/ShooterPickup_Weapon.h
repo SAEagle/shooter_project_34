@@ -31,6 +31,10 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = Pickup)
     TSubclassOf<AShooterWeapon> WeaponType;
 
+    /** lifetime of the drop */
+    UPROPERTY(EditDefaultsOnly, Category = Pickup)
+    float WeaponPickUpLifetime;
+
     /** give pickup */
     virtual void GivePickupTo(AShooterCharacter* Pawn) override;
 

@@ -7,7 +7,7 @@
 
 AShooterPickup_Weapon::AShooterPickup_Weapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-
+    WeaponPickUpLifetime = 15.0f;
 }
 
 bool AShooterPickup_Weapon::IsForWeapon(UClass* WeaponClass)
@@ -81,7 +81,6 @@ void AShooterPickup_Weapon::GivePickupTo(class AShooterCharacter* Pawn)
 
 void AShooterPickup_Weapon::NotifyActorBeginOverlap(AActor* Other)
 {
-    // Super::NotifyActorBeginOverlap(Other);
     PickUp(Cast<AShooterCharacter>(Other));
 }
 
@@ -90,7 +89,6 @@ void AShooterPickup_Weapon::PickUp(class AShooterCharacter* Pawn)
     const bool bJustSpawned = CreationTime <= (GetWorld()->GetTimeSeconds() + 3.0f);
     if (bJustSpawned)
     {
-        UE_LOG(LogTemp, Display, TEXT("Cab be picked up"));
         if (bIsActive && Pawn && Pawn->IsAlive() && !IsPendingKill())
         {
             if (CanBePickedUp(Pawn))
@@ -115,14 +113,12 @@ void AShooterPickup_Weapon::PickUp(class AShooterCharacter* Pawn)
 
 void AShooterPickup_Weapon::RemovePickUpFromScene()
 {
-    UE_LOG(LogTemp, Display, TEXT("Wanted to Destroy"));
     SetLifeSpan(2.0f);
 }
 
 void AShooterPickup_Weapon::RespawnPickup()
 {
-    UE_LOG(LogTemp, Display, TEXT("Lifetime is over"));
-    SetLifeSpan(15.0f);
+    SetLifeSpan(WeaponPickUpLifetime);
     bIsActive = true;
     PickedUpBy = NULL;
     OnRespawned();

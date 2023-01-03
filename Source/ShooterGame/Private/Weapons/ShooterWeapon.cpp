@@ -217,7 +217,6 @@ void AShooterWeapon::DetachMeshFromPawn()
 
 void AShooterWeapon::DropItem()
 {
-    UE_LOG(LogTemp, Display, TEXT("DropItem %d"), CurrentAmmoInClip);
     const FTransform SpawnLocation(FRotator::ZeroRotator, FVector(MyPawn->GetActorLocation().X, MyPawn->GetActorLocation().Y, MyPawn->GetActorLocation().Z-90.0f));
     AShooterPickup_Weapon* Weapon = GetWorld()->SpawnActorDeferred<AShooterPickup_Weapon>(WeaponToDrop, SpawnLocation);
 
@@ -225,7 +224,6 @@ void AShooterWeapon::DropItem()
     {
         Weapon->SetAmmoToDrop(CurrentAmmoInClip);
         Weapon->FinishSpawning(SpawnLocation);
-        UE_LOG(LogTemp, Display, TEXT("DropItem "));
     }
 }
 

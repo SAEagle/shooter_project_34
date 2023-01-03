@@ -370,7 +370,6 @@ void AShooterCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& 
     }
 
     // Drop current weapon item prior death
-    UE_LOG(LogTemp, Display, TEXT("Death"));
     CurrentWeapon->DropItem();
 
     // remove all weapons
@@ -446,6 +445,7 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
         }
     }
 
+    //freeze hit starting here
     if (DamageEvent.DamageTypeClass)
     {
         UShooterDamageType* DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
@@ -453,7 +453,6 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
         {
             const auto GetFreezeTime = DamageType->FreezeTime;
             SetToStartFrozen(GetFreezeTime);
-            UE_LOG(LogTemp, Display, TEXT("Apply Freeze"));
         }
     }
 
