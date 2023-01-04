@@ -445,7 +445,7 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
         }
     }
 
-    //freeze hit starting here
+    // freeze hit starting here
     if (DamageEvent.DamageTypeClass)
     {
         UShooterDamageType* DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
@@ -1074,6 +1074,7 @@ void AShooterCharacter::OnStopRunning()
     SetRunning(false, false);
 }
 
+// Walljump logic is here
 void AShooterCharacter::WallJump()
 {
     if (!GetCharacterMovement())
@@ -1088,6 +1089,7 @@ void AShooterCharacter::WallJump()
         TArray<TEnumAsByte<enum EObjectTypeQuery>> ObjectTypes;
         ObjectTypes.Add(EObjectTypeQuery::ObjectTypeQuery1);
 
+        // sphere trace in front of character
         if (UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), GetActorLocation(), EndLocation, 40.0f, ObjectTypes, false, ActorsToIgnore,
                 EDrawDebugTrace::None, HitActors, true, FLinearColor::Red, FLinearColor::Green, 2.0f))
         {
@@ -1110,9 +1112,9 @@ bool AShooterCharacter::Server_OnWallJump_Validate(FVector Location)
 {
     return true;
 }
+
 void AShooterCharacter::Server_OnWallJump_Implementation(FVector Location)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Server_OnTest_Implementation CALLED"));
     LaunchCharacter(Location, false, false);
 }
 
@@ -1376,6 +1378,7 @@ void AShooterCharacter::ActivateJetpack()
             GetCharacterMovement()->SetMovementMode(MOVE_Flying);
             GetCharacterMovement()->AirControl = 1;
         }
+        // reset recharge timer and run the new one for consumption
         GetWorldTimerManager().ClearTimer(TimerHandle_JetpackRechargeTimer);
         GetWorldTimerManager().SetTimer(TimerHandle_JetpackFuelTimer, this, &AShooterCharacter::FuelConsumption, FuelConsumptionSpeed, true);
         FuelConsumption();
@@ -1399,6 +1402,7 @@ void AShooterCharacter::DeactivateJetpack()
         GetCharacterMovement()->SetMovementMode(MOVE_Falling);
         GetCharacterMovement()->AirControl = 0.2f;
     }
+    // reset fuel consumption timer and run recharge timer afterwards
     GetWorldTimerManager().ClearTimer(TimerHandle_JetpackFuelTimer);
     GetWorldTimerManager().SetTimer(TimerHandle_JetpackRechargeTimer, this, &AShooterCharacter::FuelRecharge, FuelRechargeSpeed, true, FuelRechargeDelay);
     FuelRecharge();
@@ -1469,12 +1473,14 @@ bool AShooterCharacter::IsFrozen() const
 
 void AShooterCharacter::SetToStartFrozen(float Timer)
 {
+    // start freeze timer for the character
     GetWorldTimerManager().SetTimer(TimerHandle_FreezeHandle, this, &AShooterCharacter::ResetFrozenTimer, Timer, false);
     MakeFrozen();
 }
 
 void AShooterCharacter::MakeFrozen()
 {
+    // disable input and spawn frozen effect after
     bFrozen = true;
     DisableInputControl(true);
     SpawnFrozenEffect();
@@ -1482,6 +1488,7 @@ void AShooterCharacter::MakeFrozen()
 
 void AShooterCharacter::ResetFrozenTimer()
 {
+    // reset frozen timer and un-freeze character
     GetWorldTimerManager().ClearTimer(TimerHandle_FreezeHandle);
     bFrozen = false;
     DisableInputControl(false);
@@ -1490,9 +1497,10 @@ void AShooterCharacter::ResetFrozenTimer()
 
 void AShooterCharacter::SpawnFrozenEffect()
 {
+    // if frozen niagara effect set on the character - play effect
     if (FrozenEffectState)
     {
-        UNiagaraComponent* effect = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FrozenEffectState,
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FrozenEffectState,
             FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z - 90.0f), FRotator(1), FVector(1), true, true, ENCPoolMethod::AutoRelease,
             true);
     }
@@ -1500,6 +1508,7 @@ void AShooterCharacter::SpawnFrozenEffect()
 
 void AShooterCharacter::DisableInputControl(bool Enabled)
 {
+    // additional check for the movement and fire in the frozen state
     GetCharacterMovement()->DisableMovement();
     CurrentWeapon->StopFire();
     APlayerController* MyPC = Cast<APlayerController>(Controller);
@@ -1512,7 +1521,6 @@ void AShooterCharacter::DisableInputControl(bool Enabled)
         EnableInput(MyPC);
     }
 }
-//
 
 float AShooterCharacter::GetLowHealthPercentage() const
 {

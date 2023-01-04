@@ -215,6 +215,7 @@ void AShooterWeapon::DetachMeshFromPawn()
     Mesh3P->SetHiddenInGame(true);
 }
 
+// drop weapon item 
 void AShooterWeapon::DropItem()
 {
     const FTransform SpawnLocation(FRotator::ZeroRotator, FVector(MyPawn->GetActorLocation().X, MyPawn->GetActorLocation().Y, MyPawn->GetActorLocation().Z-90.0f));
